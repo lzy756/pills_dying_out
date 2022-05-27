@@ -1,0 +1,200 @@
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.std_logic_unsigned.all;
+
+entity pills is
+	port(clrset:in std_logic;
+		  clrrun:in std_logic;
+		  clk:in std_logic;
+		  choose:in std_logic;
+		  start:in std_logic;
+		  qd:in std_logic;
+		  pillnum:out std_logic_vector(7 downto 0);
+		  bottlenum:out std_logic_vector(7 downto 0);
+		  green:out std_logic;
+		  red:out std_logic
+		  );
+end pills;
+
+architecture behavior of pills is
+	signal temp:std_logic_vector(3 downto 0);
+	signal temp1:std_logic_vector(3 downto 0);
+	signal temp2:std_logic_vector(3 downto 0);
+	signal temp3:std_logic_vector(3 downto 0);
+	signal clkt1:integer range 0 to 10000;
+	signal clkt2:integer range 0 to 2000;
+	signal clk1:std_logic;
+	signal clk2:std_logic;
+	signal status:std_logic_vector(1 downto 0);
+	signal pillin:std_logic_vector(7 downto 0);
+	signal bottlein:std_logic_vector(7 downto 0);
+	signal finish:std_logic;
+	signal stp:std_logic;
+begin
+	process(clk)
+		begin
+			if(clk'event and clk='1')then
+				clk1<='0';
+				if(start='1' and stp='0')then
+					clkt1<=clkt1+1;
+				end if;
+				if(clkt1=10000 and start='1')then
+					clk1<='1';
+					clkt1<=0;
+				end if;
+				if(start='0')then
+					clkt2<=clkt2+1;
+				end if;
+				if(clkt2=2000 and start='0')then
+					clk2<=not clk2;
+					clkt2<=0;
+				end if;
+			end if;
+		end process;
+
+	process(qd,choose)
+		begin
+			if(choose='1')then
+				if(qd='1' and qd'event)then
+					if(status="11")then
+						status<="00";
+					else 
+						status<=status+1;
+					end if;
+				end if;
+			end if;
+			if(choose='0')then
+				if(clrset='1')then
+					temp<="0000";
+					temp1<="0000";
+					temp2<="0000";
+					temp3<="0000";
+				elsif(qd='1' and qd'event)then
+					if(status="11")then
+						temp3<=temp3+1;
+						if(temp3="1010")then
+							temp3<="0000";
+						end if;
+					end if;
+					if(status="10")then
+						temp2<=temp2+1;
+						if(temp2="1010")then
+							temp2<="0000";
+						end if;
+					end if;
+					if(status="01")then
+						temp1<=temp1+1;
+						if(temp1="0111" and temp="0000")then
+							temp1<="0000";
+						end if;
+						if(temp1="0110" and temp/="0000")then
+							temp1<="0000";
+						end if;
+					end if;
+					if(status="00")then
+						temp<=temp+1;
+						if(temp1="0110" or temp="1001")then
+							temp<="0000";
+						end if;
+					end if;			
+				end if;
+			end if;
+		end process;
+	
+	process(clk2,temp,temp1,temp2,temp3,start,finish,pillin,bottlein)
+	begin
+		if(start='0' and status="01")then
+			if(clk2='1')then
+				pillnum(7 downto 4)<= temp1;
+			end if;
+			if(clk2='0')then
+				pillnum(7 downto 4)<= "1111";
+			end if;
+		elsif(start='1' and status="01")then
+			pillnum(7 downto 4)<=pillin(7 downto 4);
+		end if;
+
+		if(start='0' and status="00")then
+			if(clk2='1')then
+				pillnum(3 downto 0)<= temp;
+			end if;
+			if(clk2='0')then
+				pillnum(3 downto 0)<= "1111";
+			end if;
+		elsif(start='1' and status="01")then
+			pillnum(3 downto 0)<=pillin(3 downto 0);
+		end if;
+
+		if(start='0' and status="10")then
+			if(clk2='1')then
+				bottlenum(3 downto 0)<= temp2;
+			end if;
+			if(clk2='0')then
+				bottlenum(3 downto 0)<= "1111";
+			end if;
+		elsif(start='1' and status="10")then
+			bottlenum(3 downto 0)<=bottlein(3 downto 0);
+		end if;
+
+		if(start='0' and status="11")then
+			if(clk2='1')then
+				bottlenum(7 downto 4)<= temp3;
+			end if;
+			if(clk2='0')then
+				bottlenum(7 downto 4)<= "1111";
+			end if;
+		elsif(start='1' and status="11")then
+			bottlenum(7 downto 4)<=bottlein(7 downto 4);
+		end if;	
+		
+		if(finish='1')then
+			stp<='1';
+		end if;
+		red<=not start;
+		if(start='1')then
+			if((temp3="0000" and temp2="0000")or(temp="0000" and temp1="0000"))then
+				stp<='1';
+			end if;
+		else 
+			stp<='0';
+		end if;
+		if(start='1'and stp='1')then
+			green<='0';
+		else 
+			green<=start;
+		end if;
+	end process;
+	
+	process(clk1,clrrun)
+	begin
+		if(clrrun='1')then
+			pillin<="00000000";
+			bottlein<="00000000";
+		elsif(start='1')then
+			if(bottlein(7 downto 4)/=temp3 or bottlein(3 downto 0)/=temp2 or pillin(7 downto 4)/=temp1 or pillin(3 downto 0)/=temp)then
+				finish<='0';
+			else
+				finish<='1';
+			end if;
+			if(finish='0')then
+				pillin(3 downto 0)<=pillin(3 downto 0)+1;
+				if(pillin(3 downto 0)="1010")then
+					pillin(3 downto 0)<="0000";
+					pillin(7 downto 4)<=pillin(7 downto 4)+1;
+				end if;
+				if(pillin(7 downto 4)=temp1 and pillin(3 downto 0)=temp)then
+					pillin<="00000000";
+					bottlein(3 downto 0)<=bottlein(3 downto 0)+1;
+					if(bottlein(3 downto 0)="1010")then
+						bottlein(7 downto 4)<=bottlein(7 downto 4)+1;
+						bottlein(3 downto 0)<="0000";
+					end if;
+					if(bottlein(7 downto 4)=temp3 and bottlein(3 downto 0)=temp2)then
+						bottlein(7 downto 4)<=temp3;
+						bottlein(3 downto 0)<=temp2;
+					end if;	
+				end if;
+			end if;
+		end if;
+	end process;
+end behavior;
