@@ -3,33 +3,33 @@ use ieee.std_logic_1164.all;
 use ieee.std_logic_unsigned.all;
 
 entity pills is
-	port(clrset:in std_logic;
-		  clrrun:in std_logic;
-		  clk:in std_logic;
-		  choose:in std_logic;
-		  start:in std_logic;
-		  qd:in std_logic;
-		  pillnum:out std_logic_vector(7 downto 0);
-		  bottlenum:out std_logic_vector(7 downto 0);
-		  green:out std_logic;
-		  red:out std_logic
+	port(clrset:in std_logic;--置数时的清零
+		  clrrun:in std_logic;--运行时的清零
+		  clk:in std_logic;--实验台输入的时钟信号
+		  choose:in std_logic;--置数时选择修改哪一位，按一下qd，choose为1时修改位数，为零时修改当前位的数值
+		  start:in std_logic;--启动选项
+		  qd:in std_logic;--单拍输入
+		  pillnum:out std_logic_vector(7 downto 0);--显示药片数
+		  bottlenum:out std_logic_vector(7 downto 0);--显示装瓶数
+		  green:out std_logic;--绿灯
+		  red:out std_logic--红灯
 		  );
 end pills;
 
 architecture behavior of pills is
-	signal temp:std_logic_vector(3 downto 0);
-	signal temp1:std_logic_vector(3 downto 0);
-	signal temp2:std_logic_vector(3 downto 0);
-	signal temp3:std_logic_vector(3 downto 0);
-	signal clkt1:integer range 0 to 10000;
-	signal clkt2:integer range 0 to 2000;
-	signal clk1:std_logic;
-	signal clk2:std_logic;
-	signal status:std_logic_vector(1 downto 0);
-	signal pillin:std_logic_vector(7 downto 0);
-	signal bottlein:std_logic_vector(7 downto 0);
-	signal finish:std_logic;
-	signal stp:std_logic;
+	signal temp:std_logic_vector(3 downto 0);--药片设置上限的低四位
+	signal temp1:std_logic_vector(3 downto 0);--药片设置上限的高四位
+	signal temp2:std_logic_vector(3 downto 0);--药瓶设置上限的低四位
+	signal temp3:std_logic_vector(3 downto 0);--药瓶设置上限的高四位
+	signal clkt1:integer range 0 to 10000;--计数器1（运行时药片时钟）用的计数整数
+	signal clkt2:integer range 0 to 2000;--计数器2（置数时闪烁时钟）用的计数整数
+	signal clk1:std_logic;--计数器1
+	signal clk2:std_logic;--计数器2
+	signal status:std_logic_vector(1 downto 0);--表示现在正在修改哪一位
+	signal pillin:std_logic_vector(7 downto 0);--表示输入的药片装药上限
+	signal bottlein:std_logic_vector(7 downto 0);--表示装瓶瓶数上限
+	signal finish:std_logic;--是否装瓶完毕
+	signal stp:std_logic;--是否装瓶完成或者输入异常
 begin
 	process(clk)
 		begin
